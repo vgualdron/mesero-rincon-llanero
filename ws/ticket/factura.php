@@ -33,7 +33,6 @@ $frm = json_decode(file_get_contents('php://input'), true);
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     $mesa = $frm['mesa'];
-    echo $mesa['descripcion'];
     $numeroMesa = substr($mesa['descripcion'], 4);
     
     $myString = $mesa['descripcion'];
@@ -145,10 +144,10 @@ function printInvoice($frm, $printerName, $tienePropina = false) {
         Intentaremos cargar e imprimir
         el logo
     */
-    try{
-        $logo = EscposImage::load("logo_banner_menu_minimized.jpg", false);
+    try {
+        $logo = EscposImage::load("logo_banner_menu_minimized.png", false);
         $printer->bitImage($logo);
-    }catch(Exception $e){/*No hacemos nada si hay error*/}
+    } catch(Exception $e){/*No hacemos nada si hay error*/}
 
     /*
         Ahora vamos a imprimir un encabezado
