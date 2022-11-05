@@ -38,15 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $myString = $mesa['descripcion'];
     $tienePropina = false;
 
-    if (strpos($myString, 'DOMICILIO') === false && strpos($myString, 'DE LLEVAR') === false) {
-        $tienePropina = true;
-    }
-
-    if ($numeroMesa >= 25 && $numeroMesa <= 45) {
-        printInvoice($frm, 'SEGUNDO-PISO-PRINTER', $tienePropina);
-    } else {
-        printInvoice($frm, 'POS-80', $tienePropina);
-    }
+    printInvoice($frm, 'POS-80', $tienePropina);
 }
 
 function printInvoice($frm, $printerName, $tienePropina = false) {
