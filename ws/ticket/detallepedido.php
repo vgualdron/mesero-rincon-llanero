@@ -8,34 +8,33 @@ use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
 
 date_default_timezone_set('America/Bogota');
 
-require_once("../conexion.php");
-require_once("../encrypted.php");
-
 function printCommand($frm, $type) {
     $producto = $frm;
     $mesa = $frm['mesa'];
     $pedido = $frm['pedido'];
-    $flagBebidas = false;
-    $flagKiosko = false;
+    $flagBar = false;
+    $flagCocina = false;
     /*
         Aquí, en lugar de "POS-58" (que es el nombre de mi impresora)
         escribe el nombre de la tuya. Recuerda que debes compartirla
         desde el panel de control
     */
     $idTipoProducto = $producto["idtipoproducto"];
-    if ($idTipoProducto == 3) {
-        $flagBebidas = true;
+    
+    if ($idTipoProducto == 40 || $idTipoProducto == 41 || $idTipoProducto == 42 || $idTipoProducto == 43 || $idTipoProducto == 44 ) {
+        $flagCocina = true;
     }
-    if ($idTipoProducto == 6) {
-        $flagKiosko = true;
+    
+    if ($idTipoProducto == 45 || $idTipoProducto == 46 || $idTipoProducto == 47 || $idTipoProducto == 48 || $idTipoProducto == 49 ) {
+        $flagBar = true;
     }
-    /* if ($flagBebidas) {
-        printTicket($mesa, $producto, $pedido, $type, "BEBIDAS-PRINTER");
+
+    if ($flagBar) {
+        printTicket($mesa, $producto, $pedido, $type, "BAR-PRINTER");
     }
-    if ($flagKiosko) {
-        printTicket($mesa, $producto, $pedido, $type, "KIOSCO-PRINTER");
-    } */
-    printTicket($mesa, $producto, $pedido, $type, "COMANDAS-PRINTER");
+    if ($flagCocina) {
+        printTicket($mesa, $producto, $pedido, $type, "COCINA-PRINTER");
+    }
     printTicket($mesa, $producto, $pedido, $type, "POS-80");
 }
 
@@ -45,27 +44,6 @@ function printTicket($mesa, $producto, $pedido, $type, $printerName) {
         'Ú'=>'U', 'Û'=>'U', 'Ü'=>'U', 'Ý'=>'Y', 'Þ'=>'B', 'ß'=>'Ss', 'à'=>'a', 'á'=>'a', 'â'=>'a', 'ã'=>'a', 'ä'=>'a', 'å'=>'a', 'æ'=>'a', 'ç'=>'c',
         'è'=>'e', 'é'=>'e', 'ê'=>'e', 'ë'=>'e', 'ì'=>'i', 'í'=>'i', 'î'=>'i', 'ï'=>'i', 'ð'=>'o', 'ñ'=>'n', 'ò'=>'o', 'ó'=>'o', 'ô'=>'o', 'õ'=>'o',
         'ö'=>'o', 'ø'=>'o', 'ù'=>'u', 'ú'=>'u', 'û'=>'u', 'ý'=>'y', 'þ'=>'b', 'ÿ'=>'y' );
-
-    $conexion = new Conexion();
-    $conexion->query("SET NAMES 'utf8';");
-    $use = $conexion->prepare(" SELECT * FROM pinchetas_restaurante.tipoproducto tipr
-    WHERE tipr.tipr_id = ?; ");
-
-    $use->bindValue(1, $producto["idtipoproducto"]);
-    $use ->execute();
-    $row = $use->fetch();
-    $descripcionTipoProducto = $row['tipr_descripcion'];
-    $producto["descripciontipoproducto"] = $descripcionTipoProducto;
-
-
-    $use = $conexion->prepare(" SELECT * FROM pinchetas_restaurante.tipoproducto tipr
-    WHERE tipr.tipr_id = ?; ");
-
-    $use->bindValue(1, $producto["idtipoproducto2"]);
-    $use ->execute();
-    $row = $use->fetch();
-    $descripcionTipoProducto2 = $row['tipr_descripcion'];
-    $producto["descripciontipoproducto2"] = $descripcionTipoProducto2;
 
     $nombre_impresora = $printerName;
 
@@ -102,30 +80,15 @@ function printTicket($mesa, $producto, $pedido, $type, $printerName) {
         $printer->text("SE CANCELA \n");
     } else if ($type == 'EDIT') {
         $productoViejo = $producto['productoviejo'];
-
-        $printer->text("SE CAMBIA \n");
+        $printer->text("MODIFICAMOS \n");
         $printer->feed(1);
         $printer->setJustification(Printer::JUSTIFY_LEFT);
         $printer->setTextSize(1,1);
         $printer->setEmphasis(true);
-
-        $textoPrefijo = '1/2';
-        if (empty($productoViejo["descripcionproducto2"])) {
-            $textoPrefijo = '';
-        }
-    
-        $printer->text("CANTIDAD ( ".strtr( $productoViejo["cantidadproducto"]. " )", $unwanted_array ). "\n");
-    
-        $printer->text(strtr($textoPrefijo." ".$productoViejo["descripcionproducto"], $unwanted_array ). "\n");
-    
-        if (!empty($productoViejo["descripcionproducto2"])) {
-            $printer->text(strtr($textoPrefijo." ".$productoViejo["descripcionproducto2"], $unwanted_array ). "\n");
-        }
-    
+        $printer->text("  ".$productoViejo["cantidadproducto"]. "   ".strtr( $productoViejo["descripcionproducto"], $unwanted_array ). "\n");
         if (!empty($productoViejo["descripcion"])) {
             $printer->text("       ".strtr($productoViejo["descripcion"], $unwanted_array ). "\n");   
         }
-        
         $printer->setTextSize(2,2);
         $printer->setJustification(Printer::JUSTIFY_CENTER);
         $printer->text("------------------------\n");
@@ -137,20 +100,7 @@ function printTicket($mesa, $producto, $pedido, $type, $printerName) {
     $printer->setEmphasis(true);
     /*Alinear a la izquierda para la cantidad y el nombre*/
     $printer->setJustification(Printer::JUSTIFY_LEFT);
-
-    $textoPrefijo = '1/2';
-    if (empty($producto["descripcionproducto2"])) {
-        $textoPrefijo = '';
-    }
-
-    $printer->text("CANTIDAD ( ".strtr( $producto["cantidadproducto"]. " )", $unwanted_array ). "\n");
-
-    $printer->text(strtr($textoPrefijo." ".$producto["descripcionproducto"], $unwanted_array ). "\n");
-
-    if (!empty($producto["descripcionproducto2"])) {
-        $printer->text(strtr($textoPrefijo." ".$producto["descripcionproducto2"], $unwanted_array ). "\n");
-    }
-
+    $printer->text("  ".$producto["cantidadproducto"]. "   ".strtr( $producto["descripcionproducto"], $unwanted_array ). "\n");
     if (!empty($producto["descripcion"])) {
         $printer->text("       ".strtr($producto["descripcion"], $unwanted_array ). "\n");   
     }
@@ -161,7 +111,7 @@ function printTicket($mesa, $producto, $pedido, $type, $printerName) {
     $printer->selectPrintMode();
    
     $printer->setJustification(Printer::JUSTIFY_RIGHT);
-    $printer->text("Chimpas pizza.\n");
+    $printer->text(".\n");
 
     $printer->feed(1);
     $printer->cut();

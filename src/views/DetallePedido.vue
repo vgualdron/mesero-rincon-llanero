@@ -5,6 +5,7 @@
         <b-card v-if="pedido && pedido != null" :header="cardHeader" tag="article" class="m-3 mt-3" border-variant="primary" header-bg-variant="primary">
           <b-row class="mt-1 mb-2">
             <b-col cols="12">
+              <b-alert v-if="isFE" show variant="info">Se creó una factura electrónica de este pedido, ya no se puede modificar.</b-alert>
               <b-form-group>
                 <b-btn
                     v-if="pedido && pedido.editablepedido == 'NO' && pedido.idestado == '5' && pedido.descripcionRolSesion != 'MESERO'"
@@ -14,16 +15,19 @@
                 <b-btn
                     v-if="pedido && pedido.editablepedido == 'SI'"
                     class="ml-3 mb-3 float-right"
+                    :disabled="isFE"
                     @click.stop="anularPedido()"
                     variant="primary">Anular Pedido</b-btn>
                 <b-btn
                   v-if="pedido && pedido.editablepedido == 'SI'"
                   class="ml-3 mb-3 float-right"
+                  :disabled="isFE"
                   @click.stop="abrirModalCambiarMesa()"
                   variant="primary">Cambiar de Mesa</b-btn>
                   <b-btn
                     v-if="(pedido && pedido.editablepedido == 'SI') || (pedido.descripcionestado == 'FACTURADO' && pedido.descripcionRolSesion != 'MESERO')"
                     class="ml-3 mb-3 float-right"
+                    :disabled="isFE"
                     @click.stop="cargarFormulario(null,'Agregar')"
                     variant="primary">Agregar Producto</b-btn>         
                 <b-btn
@@ -34,9 +38,126 @@
                 <b-btn
                   v-if="(pedido && pedido.descripcionestado == 'FACTURADO') || ((pedido && pedido.editablepedido == 'SI') && (items && items.length > 0) && (pedido && pedido.idestado > 1))"
                   class="ml-3 mb-3 float-right"
+                  :disabled="!disableBtnFE || isFE"
                   @click.stop="facturarPedido()"
                   variant="primary">Generar Factura</b-btn>
+                <b-btn
+                  v-if="(pedido && pedido.descripcionestado == 'FACTURADO') || ((pedido && pedido.editablepedido == 'SI') && (items && items.length > 0) && (pedido && pedido.idestado > 1))"
+                  class="ml-3 mb-3 float-right"
+                  :disabled="disableBtnFE"
+                  @click.stop="facturarFEPedido()"
+                  variant="primary">FE</b-btn>
               </b-form-group>
+            </b-col>
+          </b-row>
+
+          <b-row align-h="center" v-if="(pedido && pedido.descripcionestado == 'FACTURADO') || ((pedido && pedido.editablepedido == 'SI') && (items && items.length > 0) && (pedido && pedido.idestado > 1))">
+            <b-col class="contenedor-tabla">
+              
+              <b-form-checkbox
+                  id="checkbox-0"
+                  v-model="pedido.checkFe"
+                  name="checkbox-0"
+                  :value="true"
+                  :unchecked-value="false"
+                  :disabled="true"
+                  class="mb-3"
+                >  ¿Desea generar factura electrónica?
+                </b-form-checkbox>
+
+              <b-card
+                title=""
+                tag="article"
+                class="mb-4"
+                v-if="pedido.checkFe">
+                <b-container>
+                  <b-row>
+                    <b-col>
+                      <b-form-group
+                        label="Tipo de persona">
+                        <b-form-select v-if="pedido" v-model="clienteFE.kindOfPerson" class="mb-3">
+                          <option value="LEGAL_ENTITY">Persona Jurídica</option>
+                          <option value="PERSON_ENTITY">Persona Natural</option>
+                        </b-form-select>
+                      </b-form-group>
+                    </b-col>
+                    <b-col>
+                      <b-form-group
+                        label="Tipo de identificacion">
+                        <b-form-select v-if="pedido" :options="tiposDocumento" v-model="clienteFE.identificationObject.type" class="mb-3">
+                        </b-form-select>
+                      </b-form-group>
+                    </b-col>
+                    <b-col>
+                      <b-form-group
+                        description="Si es NIT, no es necesario poner el DV."
+                        label="Número de identificación">
+                        
+                        <b-input-group class="">
+                          <b-form-input v-model="clienteFE.identificationObject.number" trim></b-form-input>
+                          <b-input-group-append>
+                            <b-button variant="primary" :disabled="clienteFE.identificationObject.number.trim()==''" @click="getClientAlegra()">Buscar</b-button>
+                          </b-input-group-append>
+                        </b-input-group>
+                      </b-form-group>
+                    </b-col>
+                  </b-row>
+
+                  <b-row v-if="clienteFE.kindOfPerson == 'PERSON_ENTITY'">
+                    <b-col>
+                      <b-form-group
+                        label="Primer nombre">
+                        <b-form-input v-model="clienteFE.name.firstName" trim></b-form-input>
+                      </b-form-group>
+                    </b-col>
+                    <b-col>
+                      <b-form-group
+                        label="Segundo nombre">
+                        <b-form-input v-model="clienteFE.name.secondName" trim></b-form-input>
+                      </b-form-group>
+                    </b-col>
+                    <b-col>
+                      <b-form-group
+                        label="Apellidos">
+                        <b-form-input v-model="clienteFE.name.lastName" trim></b-form-input>
+                      </b-form-group>
+                    </b-col>
+                  </b-row>
+
+                  <b-row v-else>
+                    <b-col>
+                      <b-form-group
+                        label="Razón social / nombre completo">
+                        <b-form-input v-model="clienteFE.name" trim></b-form-input>
+                      </b-form-group>
+                    </b-col>
+                  </b-row>
+
+                  <b-row>
+                    <b-col>
+                      <b-form-group
+                        label="Municipio">
+                         <b-form-select v-if="pedido" :options="municipios" v-model="clienteFE.address.city" class="mb-3">
+                        </b-form-select>
+                      </b-form-group>
+                    </b-col>
+                    <b-col>
+                      <b-form-group
+                        label="Dirección">
+                        <b-form-input v-model="clienteFE.address.address" trim></b-form-input>
+                      </b-form-group>
+                    </b-col>
+                    <b-col>
+                      <b-form-group
+                        label="Correo electrónico">
+                        <b-form-input v-model="clienteFE.email" type="email" trim></b-form-input>
+                      </b-form-group>
+                    </b-col>
+                  </b-row>
+                  
+                  
+                </b-container>
+              </b-card>
             </b-col>
           </b-row>
 
@@ -44,11 +165,12 @@
             <b-col class="contenedor-tabla">
               
               <b-form-checkbox
-                  id="checkbox-0"
-                  v-model="facturar"
-                  name="checkbox-0"
+                  id="checkbox-1"
+                  v-model="pedido.facturar"
+                  name="checkbox-1"
                   value="SI"
                   unchecked-value="NO"
+                  :disabled="isFE"
                   class="mb-3"
                 >  ¿Desea facturar este pedido?
                 </b-form-checkbox>
@@ -61,17 +183,18 @@
                 <b-container>
 
                   <label>Seleccione el tipo de pago:</label>
-                  <b-form-select v-if="pedido" v-model="pedido.tipopago" class="mb-3">
+                  <b-form-select v-if="pedido" v-model="pedido.tipopago" class="mb-3" :disabled="isFE">
                     <option value="EFECTIVO">EFECTIVO</option>
                     <option value="TARJETA">TARJETA</option>
                   </b-form-select>
                   
                   <b-form-checkbox
-                    id="checkbox-1"
+                    id="checkbox-2"
                     v-model="asociarCliente"
-                    name="checkbox-1"
+                    name="checkbox-2"
                     value="true"
                     unchecked-value="false"
+                    :disabled="isFE"
                     class="mb-3"
                   >
                     ¿Desea asociar un cliente a este pedido?
@@ -124,6 +247,7 @@
                 <b-btn
                   class="ml-3 mb-3 float-right"
                   @click.stop="guardarCliente"
+                  :disabled="isFE"
                   variant="primary">Guardar Datos</b-btn>
               </b-card>
 
@@ -148,6 +272,7 @@
                     style="margin: 1px;"
                     class="ml-2"
                     variant="primary"
+                    :disabled="isFE"
                     @click.stop="cargarFormulario(row.item,'Modificar')">
                     <i class="icon-pencil"></i>
                   </b-button>
@@ -156,12 +281,10 @@
                     style="margin: 1px;"
                     class="ml-2"
                     variant="danger"
+                    :disabled="isFE"
                     @click.stop="cargarFormulario(row.item,'Eliminar')">
                     <i class="fa fa-trash"></i>
                   </b-button>
-                </template>
-                <template slot="descripcionprod" slot-scope="row">
-                  <p v-html="row.item.descripcionprod"></p>
                 </template>
               </b-table>
               <b-row v-if="items && items.length > 0" class="mt-1 mb-2 text-center">
@@ -208,62 +331,10 @@
       </b-col>
     </b-row>
 
-    <b-modal v-if="objeto" centered v-model="showModal" :title="tipoOperacion" size="lg">
+    <b-modal v-if="objeto" centered v-model="showModal" :title="tipoOperacion">
       <b-container>
-        <b-form-checkbox
-          v-model="isPizza"
-          name="checkbox-is-pizza"
-          :v-model="isPizza"
-          :unchecked-value="false"
-          :disabled="tipoOperacion == 'Eliminar' || tipoOperacion == 'Ver' || pedido.descripcionRolSesion == 'HELADOS'"
-          class="mb-3"
-        >
-          ¿ Es Pizza ?
-        </b-form-checkbox>
-        <template v-if="isPizza">
-          <b-form-group label="Tamaño">
-            <b-form-radio-group
-                id="radio-group-size"
-                v-model="sizePizza"
-                name="radio-size-component"
-                :disabled="tipoOperacion == 'Eliminar' || tipoOperacion == 'Ver'"
-              >
-              <b-form-radio name="size-radios" value="GRANDE">GRANDE</b-form-radio>
-              <b-form-radio name="size-radios" value="PEQUEÑA">PEQUEÑA</b-form-radio>
-              <b-form-radio name="size-radios" value="PORCIÓN">PORCIÓN</b-form-radio>
-            </b-form-radio-group>
-          </b-form-group>
-          <b-form-group label="Fracciones">
-            <b-form-radio-group
-                id="radio-group-fraccion"
-                v-model="fraccionPizza"
-                name="radio-fraccion-component"
-                :disabled="sizePizza == 'PORCIÓN' || tipoOperacion == 'Eliminar' || tipoOperacion == 'Ver'"
-              >
-              <b-form-radio name="fraccion-radios" value="ENTERA">ENTERA</b-form-radio>
-              <b-form-radio name="fraccion-radios" value="MITAD">MITAD Y MITAD</b-form-radio>
-            </b-form-radio-group>
-          </b-form-group>
-        </template>
-        <b-row class="mb-3" v-if="fraccionPizza == 'MITAD' && isPizza">
-          <b-col
-            cols="6"
-            class="text-left">
-            <span class="font-weight-bold">
-              FRACCIÓN 1
-            </span>:<br>
-          </b-col>
-          <b-col
-            cols="6"
-            class="text-left">
-            <span class="font-weight-bold">
-              FRACCIÓN 2
-            </span>:<br>
-          </b-col>
-        </b-row>
         <b-row class="mb-3">
           <b-col
-            cols="6"
             class="text-left">
             <span class="font-weight-bold">
               <span style="color:red;"> </span>Tipo Producto
@@ -272,27 +343,12 @@
               {{objeto.descripciontipoproducto}}
             </span>
             <b-form-select v-else v-model="objeto.idtipoproducto" class="mb-3">
-              <option :key="'tipo_' + t" v-for="(tipo, t) in filtrarTipoProductos(tipoProductos)" :value="tipo.id">{{tipo.descripcion}}</option>
-            </b-form-select>
-          </b-col>
-          <b-col
-            v-if="fraccionPizza == 'MITAD' && isPizza"
-            cols="6"
-            class="text-left">
-            <span class="font-weight-bold">
-              <span style="color:red;"> </span>Tipo Producto
-            </span>:<br>
-            <span v-if="(tipoOperacion === 'Ver' || tipoOperacion === 'Eliminar')">
-              {{objeto.descripciontipoproducto2}}
-            </span>
-            <b-form-select v-else v-model="objeto.idtipoproducto2" class="mb-3">
-              <option :key="'tipo2_' + t" v-for="(tipo, t) in filtrarTipoProductos(tipoProductos)" :value="tipo.id">{{tipo.descripcion}}</option>
+              <option :key="'tipo_' + t" v-for="(tipo, t) in tipoProductos" :value="tipo.id">{{tipo.descripcion}}</option>
             </b-form-select>
           </b-col>
         </b-row>
         <b-row class="mb-3">
           <b-col
-            cols="6"
             class="text-left">
             <span class="font-weight-bold">
               <span style="color:red;">* </span>Producto
@@ -302,6 +358,7 @@
             </span>
             <b-form-select v-else v-model="objeto.idproducto" class="mb-3">
               <template v-for="(tipo, t) in tipoProductos">
+                
                   <template v-if="objeto && objeto.idtipoproducto">
                     <template v-for="(producto, p) in tipo.productos">
                       <option v-if="producto.idtipoproducto == objeto.idtipoproducto" :key="'prod_' + t + '_' + p" :value="producto.id">{{producto.descripcion}}</option>
@@ -312,38 +369,13 @@
                       <option :key="'prod_' + t + '_' + p" :value="producto.id">{{producto.descripcion}}</option>
                     </template>
                   </template>
-              </template>
-            </b-form-select>
-          </b-col>
-          <b-col
-            v-if="fraccionPizza == 'MITAD' && isPizza"
-            cols="6"
-            class="text-left">
-            <span class="font-weight-bold">
-              <span style="color:red;">* </span>Producto 2
-            </span>:<br>
-            <span v-if="(tipoOperacion === 'Ver' || tipoOperacion === 'Eliminar')">
-              {{objeto.descripcionproducto2}}
-            </span>
-            <b-form-select v-else v-model="objeto.idproducto2" class="mb-3">
-              <template v-for="(tipo, t) in tipoProductos">
-                <template v-if="objeto && objeto.idtipoproducto2">
-                  <template v-for="(producto, p) in tipo.productos">
-                    <option v-if="producto.idtipoproducto == objeto.idtipoproducto2" :key="'prod2_' + t + '_' + p" :value="producto.id">{{producto.descripcion}}</option>
-                  </template>
-                </template>
-                <template v-else>
-                  <template v-for="(producto, p) in tipo.productos">
-                    <option :key="'prod2_' + t + '_' + p" :value="producto.id">{{producto.descripcion}}</option>
-                  </template>
-                </template>
+                
               </template>
             </b-form-select>
           </b-col>
         </b-row>
         <b-row class="mb-3">
           <b-col
-            cols="6"
             class="text-left">
             <span class="font-weight-bold">
               <span style="color:red;">* </span>Cantidad
@@ -351,11 +383,12 @@
             <span v-if="(tipoOperacion === 'Ver' || tipoOperacion === 'Eliminar')">
               {{objeto.cantidadproducto}}
             </span>
-              <b-form-select
-                v-else
-                v-model="objeto.cantidadproducto"
-                :options="options">
-              </b-form-select>
+            <b-form-input
+              v-else
+              type="number"
+              required
+              v-model="objeto.cantidadproducto"
+              class="form-control"/>
           </b-col>
         </b-row>
         <b-row class="mb-3">
@@ -451,7 +484,6 @@ export default {
       showModal: false,
       showModalCambiarMesa: false,
       tipoProductos: [],
-      tipoOperacion: null,
       campos: [
         {
           key: "cantidadproducto",
@@ -460,14 +492,8 @@ export default {
           thStyle: "text-align:center;",
           tdClass: "columna-centrada"
         },
-        /* {
-          key: "descripciontipoproducto",
-          label: "Tipo producto",
-          sortable: true,
-          thStyle: "text-align:center;"
-        }, */
         {
-          key: "descripcionprod",
+          key: "descripcionproducto",
           label: "Producto",
           sortable: true,
           thStyle: "text-align:center;"
@@ -495,33 +521,64 @@ export default {
       mesasDisponibles: [],
       nombreCliente: null,
       asociarCliente: false,
-      isPizza: true,
-      sizePizza: 'GRANDE',
-      fraccionPizza: 'ENTERA',
-      options: [
-        { value: '1', text: '1' },
-        { value: '2', text: '2' },
-        { value: '3', text: '3' },
-        { value: '4', text: '4' },
-        { value: '5', text: '5' },
-        { value: '6', text: '6' },
-        { value: '7', text: '7' },
-        { value: '8', text: '8' },
-        { value: '9', text: '9' },
-        { value: '10', text: '10' }
-      ],
-      itemsPrint: [
-        "LASAÑAS",
-        "PIZZAS",
-        "PANZEROTTIS",
-        "ADICIONALES DE PROTEÍNA",
-        "PIZZERITOS",
-        "SANGRIA",
-        "HELADO",
-        "PASTA"
-      ],
-      facturar: 'SI'
+      tiposDocumento: [],
+      municipios: [],
+      clienteFEBase: {
+        name: '',
+        identificationObject: {
+          type: 'NIT',
+          number: ''
+        },
+        address: {
+          address: '',
+          department: 'N. de Santander',
+          city: 'Cúcuta',
+          country: 'Colombia'
+        },
+        kindOfPerson: 'LEGAL_ENTITY',
+        email: '',
+        type: [
+          'client'
+        ]
+      },
+      clienteFE: {}
     };
+  },
+  computed: {
+    disableBtnFE: function () {
+      if (this.pedido.isFE == 'true') {
+        return true;
+      }
+      if (this.pedido.checkFe == false) {
+        return true;
+      } else {
+        if (this.clienteFE && !this.clienteFE.identificationObject) {
+          return true;
+        }
+        if (this.clienteFE.identificationObject.number.trim() == '') {
+          return true;
+        }
+        if (this.clienteFE.email.trim() == '') {
+          return true;
+        }
+        if (this.clienteFE.address.address.trim() == '') {
+          return true;
+        }
+        if (this.clienteFE.kindOfPerson == 'LEGAL_ENTITY') {
+          if (this.clienteFE.name.trim() == '') {
+            return true
+          }
+        } else {
+          if (this.clienteFE.name.firstName.trim() == '' || this.clienteFE.name.secondName.trim() == '' || this.clienteFE.name.lastName.trim() == '') {
+            return true
+          }
+        }
+      }
+      return false;
+    },
+    isFE: function () {
+      return this.pedido.isFE ==  'true';
+    },
   },
   watch: {
     asociarCliente: function (valor) {
@@ -547,97 +604,81 @@ export default {
         this.objeto.descripcionproducto = producto.descripcion;
       }
     },
-    'objeto.idproducto2': function (valor) {
-      const tipoProducto = this.tipoProductos.find((tipoProducto) => {
-        return tipoProducto.id == this.objeto.idtipoproducto2;
+    'clienteFE.address.city': function (valor) {
+      const municipioSeleccionado = this.municipios.find((municipio) => {
+        return municipio.city == valor;
       });
-      if (tipoProducto && tipoProducto.productos) {
-        const producto = tipoProducto.productos.find((producto) => {
-          return producto.id == this.objeto.idproducto2;
-        });
-        this.objeto.descripcionproducto2 = producto.descripcion;
+      if (municipioSeleccionado) {
+        this.clienteFE.address.country = municipioSeleccionado.country;
+        this.clienteFE.address.department = municipioSeleccionado.department;
       }
     },
-    sizePizza: function(valor) {
-      if (this.tipoOperacion == 'Agregar' || this.tipoOperacion == 'Modificar') {
-        this.objeto = {
-          id: this.objeto.id,
-          idtipoproducto: null,
-          idtipoproducto2: null,
-          descripciontipoproducto: null,
-          descripciontipoproducto2: null,
-          idproducto: null,
-          idproducto2: null,
-          descripcionproducto: null,
-          descripcionproducto2: null,
-          costoproducto: null,
-          cantidadproducto: 1,
-          precioproducto: null,
-          descripcion: null
-        };
-      }
-      if (valor == 'PORCIÓN') {
-        this.fraccionPizza = 'ENTERA';
+    'clienteFE.kindOfPerson': function (valor) {
+      if (valor != 'LEGAL_ENTITY') {
+        this.clienteFE.name = {
+          firstName: '',
+          secondName: '',
+          lastName: ''
+        }
+      } else {
+        this.clienteFE.name = '';
       }
     },
-    fraccionPizza: function(valor) {
-      if (this.tipoOperacion == 'Agregar' || this.tipoOperacion == 'Modificar') {
-        this.objeto = {
-          id: this.objeto.id,
-          idtipoproducto: null,
-          idtipoproducto2: null,
-          descripciontipoproducto: null,
-          descripciontipoproducto2: null,
-          idproducto: null,
-          idproducto2: null,
-          descripcionproducto: null,
-          descripcionproducto2: null,
-          costoproducto: null,
-          cantidadproducto: 1,
-          precioproducto: null,
-          descripcion: null
-        };
-      }
-    },
-    isPizza: function(valor) {
-      if (this.tipoOperacion == 'Agregar' || this.tipoOperacion == 'Modificar') {
-        this.objeto = {
-          id: this.objeto.id,
-          idtipoproducto: null,
-          idtipoproducto2: null,
-          descripciontipoproducto: null,
-          descripciontipoproducto2: null,
-          idproducto: null,
-          idproducto2: null,
-          descripcionproducto: null,
-          descripcionproducto2: null,
-          costoproducto: null,
-          cantidadproducto: 1,
-          precioproducto: null,
-          descripcion: null
-        };
+    'clienteFE.nameObject': function (valor) {
+      if (valor && valor.firstName) {
+        this.clienteFE.name = valor;
       }
     }
   },
   methods: {
-    filtrarTipoProductos(tipoProductos) {
-      const textFilter = 'PIZZA';
-      const sizeFilter = this.sizePizza;
-      const condicion = this.isPizza ? true :  false;
-      return tipoProductos.filter((tipoProducto) => {
-        return (tipoProducto.descripcion.includes(textFilter) === condicion) && (tipoProducto.descripcion.includes(sizeFilter) === condicion);
-      });
-    },
     atras: function() {
       this.$router.go(-1)
+    },
+    resetClient: function() {
+      this.clienteFE = {
+        ...this.clienteFEBase
+      }
+	  this.clienteFE.identificationObject.number = '';
+	  this.clienteFEBase.identificationObject.number = '';
+    },
+    getClientAlegra: function() {
+      this.$loader.open({ message: "Cargando ..." });
+      var self = this;
+      var frm = {
+        identification: self.clienteFE.identificationObject.number
+      };
+      this.$http.get("ws/cliente/", { params: frm }).then(resp => {
+        if (resp.data.identificationObject) {
+          self.clienteFE = {...resp.data};
+		  self.clienteFE.identification = null;
+        } else {
+          self.resetClient();
+        }
+        self.$loader.close();
+      });
+    },
+    listarTiposDocumento: function() {
+      this.$loader.open({ message: "Cargando ..." });
+      var self = this;
+      var frm = {};
+      this.$http.get("ws/tipodocumento/", frm).then(resp => {
+        self.tiposDocumento = resp.data;
+        self.$loader.close();
+      });
+    },
+    listarMunicipios: function() {
+      this.$loader.open({ message: "Cargando ..." });
+      var self = this;
+      var frm = {};
+      this.$http.get("ws/municipio/", frm).then(resp => {
+        self.municipios = resp.data;
+        self.$loader.close();
+      });
     },
     listarTiposPedido: function() {
       this.$loader.open({ message: "Cargando ..." });
       var self = this;
-      var token = window.localStorage.getItem("token");
-      var frm = {
-        token: token
-      };
+      var frm = {};
       this.$http.post("ws/productotipoproducto/", frm).then(resp => {
         self.tipoProductos = resp.data.tiposProducto;
         self.$loader.close();
@@ -651,63 +692,38 @@ export default {
     },
     cargarFormulario: function(obj, operacion) {
       this.tipoOperacion = operacion;
-      this.objeto = {...obj};
+      this.objeto = obj;
       this.objetoViejo = null;
       if (obj === null) {
         this.objeto = {
           id: null,
           idtipoproducto: null,
-          idtipoproducto2: null,
           descripciontipoproducto: null,
-          descripciontipoproducto2: null,
           idproducto: null,
-          idproducto2: null,
           descripcionproducto: null,
-          descripcionproducto2: null,
           costoproducto: null,
           cantidadproducto: 1,
           precioproducto: null,
           descripcion: null
         };
       } else {
-        this.selectedVisble = obj.visible;
+        this.selectedVisble = obj.visible
         this.cantidadProductoVieja = obj.cantidadproducto;
-        this.isPizza = obj.descripciontipoproducto ? obj.descripciontipoproducto.includes('PIZZAS') : false;
-        this.fraccionPizza = obj.descripcionproducto2 ? 'MITAD' : 'ENTERA';
-
-        if (obj.descripciontipoproducto && obj.descripciontipoproducto.includes('GRANDE')) {
-          this.sizePizza = 'GRANDE';
-        } else if (obj.descripciontipoproducto && obj.descripciontipoproducto.includes('PEQUEÑA')) {
-          this.sizePizza = 'PEQUEÑA';
-        } else if (obj.descripciontipoproducto && obj.descripciontipoproducto.includes('PORCIÓN')) {
-          this.sizePizza = 'PORCIÓN';
+        this.objeto = {
+          id: obj.id,
+          idtipoproducto: obj.idtipoproducto,
+          descripciontipoproducto: obj.descripciontipoproducto,
+          idproducto: obj.idproducto,
+          descripcionproducto: obj.descripcionproducto,
+          costoproducto: obj.costoproducto,
+          cantidadproducto: obj.cantidadproducto,
+          precioproducto: obj.precioproducto,
+          descripcion: obj.descripcion
+        };
+        this.objetoViejo = {
+          ...this.objeto
         }
-
-        setTimeout(() => {
-          this.objeto = {
-            id: obj.id,
-            idtipoproducto: obj.idtipoproducto,
-            idtipoproducto2: obj.idtipoproducto2,
-            descripciontipoproducto: obj.descripciontipoproducto,
-            descripciontipoproducto2: obj.descripciontipoproducto2,
-            idproducto: obj.idproducto,
-            idproducto2: obj.idproducto2,
-            descripcionprod: obj.descripcionprod,
-            descripcionproducto: obj.descripcionproducto,
-            descripcionproducto2: obj.descripcionproducto2,
-            costoproducto: obj.costoproducto,
-            cantidadproducto: obj.cantidadproducto,
-            precioproducto: obj.precioproducto,
-            descripcion: obj.descripcion
-          };
-
-          this.objetoViejo = {
-            ...this.objeto,
-            // descripciontipoproducto: descripcionTipoProducto
-          }
-        }, 500);
       }
-
       this.showModal = true;
     },
     validarCampos: function() {
@@ -715,7 +731,7 @@ export default {
         this.$toast.error("Debe seleccionar un producto.");
         return false;
       }
-      if (!this.objeto.cantidadproducto || this.objeto.cantidadproducto <= 0) {
+      if (!this.objeto.cantidadproducto || this.objeto.cantidadproducto < 1) {
         this.$toast.error("Debe de escribir la cantidad.");
         return false;
       }
@@ -728,21 +744,30 @@ export default {
         idmesa: self.mesa.id,
         token: token
       };
-      self.$loader.open({ message: "Creando ..." });
-      self.$http.post("ws/pedido/", frm).then(resp => {
-        var respuesta = resp.data;
-        self.idPedido = respuesta.id;
-        self.consultarPedido(self.idPedido);
-        self.$toast.success(resp.data.mensaje);
-        self.$loader.close();
-      }).catch(resp => {
-        self.$loader.close();
-        if (resp.data && resp.data.mensaje) {
-          self.$toast.error(resp.data.mensaje);
-        } else {
-          self.$toast.error("No se pudo crear el pedido");
-        }
-      });
+      this.$alertify
+        .confirmWithTitle(
+          "Guardar",
+          "Seguro que desea crear un nuevo pedido?",
+          function() {
+            self.$loader.open({ message: "Creando ..." });
+            self.$http.post("ws/pedido/", frm).then(resp => {
+              var respuesta = resp.data;
+              self.idPedido = respuesta.id;
+              self.consultarPedido(self.idPedido);
+              self.$toast.success(resp.data.mensaje);
+              self.$loader.close();
+            }).catch(resp => {
+              self.$loader.close();
+              if (resp.data && resp.data.mensaje) {
+                self.$toast.error(resp.data.mensaje);
+              } else {
+                self.$toast.error("No se pudo crear el pedido");
+              }
+            });
+          },
+          function() {}
+        )
+        .set("labels", { ok: "Aceptar", cancel: "Cancelar" });
     },
     consultarPedido: function(id) {
       var self = this;
@@ -757,7 +782,6 @@ export default {
       self.$http.get("ws/pedido/", frm).then(resp => {
         var respuesta = resp.data;
         self.pedido = respuesta;
-        self.isPizza = self.pedido && self.pedido.descripcionRolSesion == 'HELADOS' ? false : true; 
         self.cardHeader =  '<strong> Detalles del pedido, ' + (this.$route.params.mesa && this.$route.params.mesa.descripcion ? this.$route.params.mesa.descripcion : '') + ' ( ' + (this.pedido && this.pedido.descripcionestado ? this.pedido.descripcionestado : '') + ' )' + ' ( ' + (this.pedido && this.pedido.prefijofactura ? this.pedido.prefijofactura : '') + ' - ' + (this.pedido && this.pedido.numerofactura ? this.pedido.numerofactura : '') + ' )' + ' </strong>';
         self.$loader.close();
         if (self.pedido.telefonocliente && self.pedido.nombrecliente && self.pedido.direccioncliente) {
@@ -887,6 +911,18 @@ export default {
       this.listarMesasDisponibles()
       this.showModalCambiarMesa = true
     },
+    generarTicketCambioMesa: function(frm) {
+      var self = this;
+      let token = window.localStorage.getItem("token");
+      self.$loader.open({ message: "Cambiando de mesa ..." });
+      self.$http.post("ws/ticket/cambio-mesa.php", frm).then(resp => {
+        self.$loader.close();
+      })
+      .catch(resp => {
+        self.$loader.close();
+        self.$toast.error("error generando ticket de cambio de mesa");
+      });
+    },
     cambiarMesa: function() {
       var self = this;
       if (!self.idMesaNueva) {
@@ -902,6 +938,7 @@ export default {
         token: token,
         idestado: self.pedido.idestado,
         idmesa: self.idMesaNueva,
+        idmesaVieja: self.pedido.idmesa,
         nombrecliente: self.pedido.nombrecliente,
         telefonocliente: self.pedido.telefonocliente,
         direccioncliente: self.pedido.direccioncliente,
@@ -917,6 +954,7 @@ export default {
             self.$loader.open({ message: "Cambiando ..." });
             self.$http.put("ws/pedido/", frm).then(resp => {
               var respuesta = resp.data;
+              self.generarTicketCambioMesa(frm);
               self.$toast.success(resp.data.mensaje);
               self.$loader.close();
               self.atras();
@@ -961,51 +999,7 @@ export default {
               var respuesta = resp.data;
               self.$toast.success(resp.data.mensaje);
               self.$loader.close();
-              
-              const itemsValid = self.items.filter((item) => {
-                return (
-                  item.descripciontipoproducto.includes(self.itemsPrint[0])
-                  || item.descripciontipoproducto.includes(self.itemsPrint[1])
-                  || item.descripciontipoproducto.includes(self.itemsPrint[2])
-                  || item.descripciontipoproducto.includes(self.itemsPrint[3])
-                  || item.descripciontipoproducto.includes(self.itemsPrint[4])
-                  || item.descripciontipoproducto.includes(self.itemsPrint[5])
-                  || item.descripciontipoproducto.includes(self.itemsPrint[6])
-                  || item.descripciontipoproducto.includes(self.itemsPrint[7])
-                )
-              });
-
-              if (itemsValid.length === 0) {
-                self.atras();
-                return;
-              } else {
-                 const itemsCaja = self.items.filter((item) => {
-                  return (
-                    item.descripciontipoproducto.includes(self.itemsPrint[4])
-                    || item.descripciontipoproducto.includes(self.itemsPrint[5])
-                    || item.descripciontipoproducto.includes(self.itemsPrint[6])
-                  )
-                });
-                
-                if (itemsCaja.length > 0 ) {
-                  self.generarTicketPedidoCaja();
-                }
-
-                const itemsCocina = self.items.filter((item) => {
-                  return (
-                    item.descripciontipoproducto.includes(self.itemsPrint[0])
-                    || item.descripciontipoproducto.includes(self.itemsPrint[1])
-                    || item.descripciontipoproducto.includes(self.itemsPrint[2])
-                    || item.descripciontipoproducto.includes(self.itemsPrint[3])
-                    || item.descripciontipoproducto.includes(self.itemsPrint[7])
-                  )
-                });
-
-                if (itemsCocina.length > 0) {
-                  self.generarTicketPedidoCocina();
-                }
-              }
-              
+              self.generarTicketPedido();
               self.atras();
             }).catch(resp => {
               self.$loader.close();
@@ -1095,7 +1089,7 @@ export default {
         telefonocliente: self.pedido.telefonocliente,
         direccioncliente: self.pedido.direccioncliente,
         tipopago: self.pedido.tipopago,
-        facturar: self.facturar,
+        facturar: self.pedido.facturar,
         numerofactura: self.pedido.numerofactura,
         prefijofactura: self.pedido.prefijofactura
       };
@@ -1109,6 +1103,48 @@ export default {
               var respuesta = resp.data;
               self.$toast.success(resp.data.mensaje);
               self.generarTicketFactura();
+              self.$loader.close();
+              self.atras();
+            }).catch(resp => {
+              self.$loader.close();
+              if (resp.data && resp.data.mensaje) {
+                self.$toast.error(resp.data.mensaje);
+              } else {
+                self.$toast.error("No se pudo facturar el pedido");
+              }
+            });
+          },
+          function() {}
+        )
+        .set("labels", { ok: "Aceptar", cancel: "Cancelar" });
+    },
+    facturarFEPedido: function() {
+      var self = this;
+      var token = window.localStorage.getItem("token");
+      
+      var frm = {
+        id: self.idPedido,
+        token: token,
+        idestado: "5",
+        idmesa: self.pedido.idmesa,
+        nombrecliente: self.pedido.nombrecliente,
+        telefonocliente: self.pedido.telefonocliente,
+        direccioncliente: self.pedido.direccioncliente,
+        tipopago: self.pedido.tipopago,
+        facturar: self.pedido.facturar,
+        numerofactura: self.pedido.numerofactura,
+        prefijofactura: self.pedido.prefijofactura,
+        clienteFE: self.clienteFE
+      };
+      this.$alertify
+        .confirmWithTitle(
+          "Factura Electrónica",
+          "Seguro que desea facturar electrónicamente el pedido?",
+          function() {
+            self.$loader.open({ message: "Facturando ..." });
+            self.$http.put("ws/pedido/fe.php", frm).then(resp => {
+              var respuesta = resp.data;
+              self.$toast.success(resp.data.mensaje);
               self.$loader.close();
               self.atras();
             }).catch(resp => {
@@ -1188,7 +1224,7 @@ export default {
       var self = this;
       self.$set(self.objeto, "token", window.localStorage.getItem("token"));
       self.$set(self.objeto, "idpedido", this.pedido.id);
-      self.$set(self.objeto, "cantidadproductosumar", (parseFloat(self.cantidadProductoVieja) - parseFloat(self.objeto.cantidadproducto)));
+      self.$set(self.objeto, "cantidadproductosumar", (parseInt(self.cantidadProductoVieja) - parseInt(self.objeto.cantidadproducto)));
       self.$set(self.objeto, "productoviejo", this.objetoViejo);
       self.$set(self.objeto, "mesa", this.mesa);
       self.$set(self.objeto, "pedido", this.pedido);
@@ -1257,7 +1293,7 @@ export default {
       // this.totalFilas = itemsFiltrados.length;
       // this.paginaActual = 1;
     },
-    generarTicketPedidoCaja: function() {
+    generarTicketPedido: function() {
       var self = this;
       let token = window.localStorage.getItem("token");
       var frm = { 
@@ -1267,30 +1303,14 @@ export default {
         idmesero: self.pedido.idmesero
       }
       self.$loader.open({ message: "Generando ..." });
-      self.$http.post("ws/ticket/pedido-caja.php", frm).then(resp => {
+      self.$http.post("ws/ticket/pedido.php", frm).then(resp => {
           self.$loader.close();
+          // self.$toast.success(resp.data.mensaje);
+          // self.$toast.success("Exito");
         })
         .catch(resp => {
           self.$loader.close();
-          self.$toast.error("error generando ticket de pedido caja");
-        });
-    },
-    generarTicketPedidoCocina: function() {
-      var self = this;
-      let token = window.localStorage.getItem("token");
-      var frm = { 
-        productos: self.items,
-        mesa: self.mesa,
-        token: token,
-        idmesero: self.pedido.idmesero
-      }
-      self.$loader.open({ message: "Generando ..." });
-      self.$http.post("ws/ticket/pedido-cocina.php", frm).then(resp => {
-          self.$loader.close();
-        })
-        .catch(resp => {
-          self.$loader.close();
-          self.$toast.error("error generando ticket de pedido comandas");
+          self.$toast.error("error generando ticket de pedido");
         });
     },
     generarTicketFactura: function() {
@@ -1308,7 +1328,7 @@ export default {
         telefonocliente: self.pedido.telefonocliente,
         direccioncliente: self.pedido.direccioncliente,
         tipopago: self.pedido.tipopago,
-        facturar: self.facturar,
+        facturar: self.pedido.facturar,
         numerofactura: self.pedido.numerofactura,
         prefijofactura: self.pedido.prefijofactura
       }
@@ -1327,7 +1347,7 @@ export default {
       var self = this;
       var total = 0;
       this.items.forEach(item => {
-        total += (parseInt(item.precioproducto) * parseFloat(item.cantidadproducto));
+        total += (parseInt(item.precioproducto) * parseInt(item.cantidadproducto));
       });
       var total = '$' + Number(total.toFixed(1)).toLocaleString();
       return total;
@@ -1353,10 +1373,13 @@ export default {
     },
   },
   created: function() {
+    this.resetClient();
     if (this.idPedido) {
       this.consultarPedido(this.idPedido);
     }
     this.listarTiposPedido();
+    this.listarTiposDocumento();
+    this.listarMunicipios();
   },
   mounted: function() {
     this.$loader.close();
