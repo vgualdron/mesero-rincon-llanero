@@ -358,16 +358,13 @@
             </span>
             <b-form-select v-else v-model="objeto.idproducto" class="mb-3">
               <template v-for="(tipo, t) in tipoProductos">
-                
                   <template v-if="objeto && objeto.idtipoproducto">
                     <template v-for="(producto, p) in tipo.productos">
                       <option v-if="producto.idtipoproducto == objeto.idtipoproducto" :key="'prod_' + t + '_' + p" :value="producto.id">{{producto.descripcion}}</option>
                     </template>
                   </template>
                   <template v-else>
-                    <template v-for="(producto, p) in tipo.productos">
-                      <option :key="'prod_' + t + '_' + p" :value="producto.id">{{producto.descripcion}}</option>
-                    </template>
+                    <option v-for="(producto, p) in tipo.productos" :key="'prod_' + t + '_' + p" :value="producto.id">{{producto.descripcion}}</option>
                   </template>
                 
               </template>
