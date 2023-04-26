@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     */
     foreach ($productos as $clave => $producto) {
         $idTipoProducto = $producto["idtipoproducto"];
-        if ($idTipoProducto == 40 || $idTipoProducto == 41 || $idTipoProducto == 42 || $idTipoProducto == 43 || $idTipoProducto == 44 ) {
+        if ($idTipoProducto == 40 || $idTipoProducto == 41 || $idTipoProducto == 42 || $idTipoProducto == 43 || $idTipoProducto == 44 || $idTipoProducto == 50) {
             $flagCocina = true;
         }
         
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($flagCocina) {
         printCommand($mesa, $productos, "COCINA-PRINTER");
     }
-    printCommand($mesa, $productos, "POS-80");
+    // printCommand($mesa, $productos, "POS-80");
 }
 
 function printCommand($mesa, $productos, $printerName) {

@@ -292,6 +292,14 @@
                   <b-alert show><strong>TOTAL: {{totalPedido()}}</strong></b-alert>
                 </b-col>
               </b-row>
+              <b-row v-if="items && items.length > 0" class="mt-1 mb-2 text-center">
+                <b-col cols="6">
+                  <money v-model="dineroRecibido" class="form-control"></money>
+                </b-col>
+                <b-col cols="6" v-if="dineroRecibido > 0">
+                  <b-alert show><strong>VUELTOS: {{ vueltos }}</strong></b-alert>
+                </b-col>
+              </b-row>
               <b-row v-else class="mt-1 mb-2 text-center">
                 <b-col cols="12">
                   <b-alert show>El pedido está creado, pero no se encontraron registros de productos pedidos. Haz click en el boton Nuevo para agregar productos.</b-alert>
@@ -469,6 +477,7 @@
 </style>
 
 <script>
+import {Money} from 'v-money';
 var self = this;
 export default {
   name: "DetallePedido",
@@ -538,7 +547,8 @@ export default {
           'client'
         ]
       },
-      clienteFE: {}
+      clienteFE: {},
+      dineroRecibido: 0,
     };
   },
   computed: {
@@ -575,6 +585,13 @@ export default {
     },
     isFE: function () {
       return this.pedido.isFE ==  'true';
+    },
+    vueltos() {
+      let total = 0;
+      this.items.forEach(item => {
+        total += (parseInt(item.precioproducto) * parseInt(item.cantidadproducto));
+      });
+      return parseInt(this.dineroRecibido) - parseInt(total)
     },
   },
   watch: {

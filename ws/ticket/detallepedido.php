@@ -21,11 +21,11 @@ function printCommand($frm, $type) {
     */
     $idTipoProducto = $producto["idtipoproducto"];
     
-    if ($idTipoProducto == 40 || $idTipoProducto == 41 || $idTipoProducto == 42 || $idTipoProducto == 43 || $idTipoProducto == 44 ) {
+    if ($idTipoProducto == 40 || $idTipoProducto == 41 || $idTipoProducto == 42 || $idTipoProducto == 43 || $idTipoProducto == 44 || $idTipoProducto == 50) {
         $flagCocina = true;
     }
     
-    if ($idTipoProducto == 45 || $idTipoProducto == 46 || $idTipoProducto == 47 || $idTipoProducto == 48 || $idTipoProducto == 49 ) {
+    if ($idTipoProducto == 45 || $idTipoProducto == 46 || $idTipoProducto == 47 || $idTipoProducto == 48 || $idTipoProducto == 49) {
         $flagBar = true;
     }
 
@@ -35,7 +35,7 @@ function printCommand($frm, $type) {
     if ($flagCocina) {
         printTicket($mesa, $producto, $pedido, $type, "COCINA-PRINTER");
     }
-    printTicket($mesa, $producto, $pedido, $type, "POS-80");
+    // printTicket($mesa, $producto, $pedido, $type, "POS-80");
 }
 
 function printTicket($mesa, $producto, $pedido, $type, $printerName) {
