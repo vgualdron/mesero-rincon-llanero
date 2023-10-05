@@ -223,13 +223,11 @@ try {
       $sql->bindValue(2, $registradopor);
       $result = $sql->execute();
       if($result) {
-        $output['id'] = $postId;
         $output['mensaje'] = "Eliminado con éxito";
         header("HTTP/1.1 200 OK");
         echo json_encode($output);
         exit();
   	  } else {
-        $output['id'] = $postId;
         $output['mensaje'] = "Error eliminando";
         header("HTTP/1.1 400 Bad Request");
         echo json_encode($output);

@@ -22,7 +22,6 @@ try {
   
   //  listar todos los posts o solo uno
   if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-      $registradopor = openCypher('decrypt', $_GET['token']);
       if (isset($_GET['id'])) {
         $sql = $conexion->prepare(" select 
                                     depe.depe_id as id,
@@ -262,13 +261,11 @@ try {
       $sql->bindValue(2, $registradopor);
       $result = $sql->execute();
       if($result) {
-        $output['id'] = $postId;
         $output['mensaje'] = "Eliminado con éxito";
         header("HTTP/1.1 200 OK");
         echo json_encode($output);
         exit();
   	  } else {
-        $output['id'] = $postId;
         $output['mensaje'] = "Error eliminando";
         header("HTTP/1.1 400 Bad Request");
         echo json_encode($output);

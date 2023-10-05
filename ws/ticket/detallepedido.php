@@ -12,8 +12,9 @@ function printCommand($frm, $type) {
     $producto = $frm;
     $mesa = $frm['mesa'];
     $pedido = $frm['pedido'];
-    $flagBar = false;
+    $flagCarne = false;
     $flagCocina = false;
+    $flagCaja = false;
     /*
         Aquí, en lugar de "POS-58" (que es el nombre de mi impresora)
         escribe el nombre de la tuya. Recuerda que debes compartirla
@@ -21,21 +22,27 @@ function printCommand($frm, $type) {
     */
     $idTipoProducto = $producto["idtipoproducto"];
     
-    if ($idTipoProducto == 40 || $idTipoProducto == 41 || $idTipoProducto == 42 || $idTipoProducto == 43 || $idTipoProducto == 44 || $idTipoProducto == 50) {
+    if ($idTipoProducto == 53 || $idTipoProducto == 54 || $idTipoProducto == 55 || $idTipoProducto == 56 || $idTipoProducto == 57 || $idTipoProducto == 64 || $idTipoProducto == 65) {
         $flagCocina = true;
     }
     
-    if ($idTipoProducto == 45 || $idTipoProducto == 46 || $idTipoProducto == 47 || $idTipoProducto == 48 || $idTipoProducto == 49) {
-        $flagBar = true;
+    if ($idTipoProducto == 52 ) {
+        $flagCarne = true;
     }
 
-    if ($flagBar) {
-        printTicket($mesa, $producto, $pedido, $type, "BAR-PRINTER");
+    if ($idTipoProducto == 51 || $idTipoProducto == 58 || $idTipoProducto == 59 ) {
+        $flagCaja = true;
+    }
+
+    if ($flagCarne) {
+        printTicket($mesa, $producto, $pedido, $type, "CARNE-PRINTER");
     }
     if ($flagCocina) {
         printTicket($mesa, $producto, $pedido, $type, "COCINA-PRINTER");
     }
-    // printTicket($mesa, $producto, $pedido, $type, "POS-80");
+    if ($flagCaja) {
+        printTicket($mesa, $producto, $pedido, $type, "POS-80");
+    }
 }
 
 function printTicket($mesa, $producto, $pedido, $type, $printerName) {

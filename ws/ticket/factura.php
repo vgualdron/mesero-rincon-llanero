@@ -38,6 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $myString = $mesa['descripcion'];
     $tienePropina = false;
 
+    if ((preg_match('/MESA/i', $myString))) {
+        $tienePropina = true;
+    }
+
     printInvoice($frm, 'POS-80', $tienePropina);
 }
 
@@ -137,23 +141,23 @@ function printInvoice($frm, $printerName, $tienePropina = false) {
         el logo
     */
     try {
-        $logo = EscposImage::load("logo_banner_menu_minimized.png", false);
+        $logo = EscposImage::load("logo_banner_menu_minimized.jpg", false);
         $printer->bitImage($logo);
     } catch(Exception $e){/*No hacemos nada si hay error*/}
 
     /*
         Ahora vamos a imprimir un encabezado
     */
-    $printer->feed(1);
+    // $printer->feed(1);
     $printer->setEmphasis(true);
     $printer->setTextSize(2,1);
     $printer->text($nombreEmpresa . "\n");
     $printer->setTextSize(1,1);
-    $printer->text("NIT: " . $nitEmpresa . "\n");
+    // $printer->text("NIT: " . $nitEmpresa . "\n");
     $printer->text($direccionEmpresa . "\n");
     $printer->text("TEL: " . $telefonoEmpresa . "\n");
-    $printer->text($resolucionEmpresa . " \n");
-    $printer->text("" . $rangoAutorizadoFacturas . "\n");
+    // $printer->text($resolucionEmpresa . " \n");
+    // $printer->text("" . $rangoAutorizadoFacturas . "\n");
     
     $printer->feed(1);
     $printer->setTextSize(1,1);
@@ -249,15 +253,15 @@ function printInvoice($frm, $printerName, $tienePropina = false) {
     $printer->text("TOTAL: $".  number_format($total + $propina, 0, ',', '.') ."\n");
     $printer->selectPrintMode();
     $printer->setJustification(Printer::JUSTIFY_LEFT);
-    $printer->text("CANTIDAD PRODUCTOS: ". $totalCantidadProductos ."\n");
+    // $printer->text("CANTIDAD PRODUCTOS: ". $totalCantidadProductos ."\n");
     $printer->text("------------------------------------------------\n");
     
     $printer->text("    BASE      %          IVA      %       ICO   \n");
     
-    $base = $total - ($total * 0.08);
+    $ico = $total - ($total / 1.08);
     // $base = $total;
     $iva = 0;
-    $ico = ($total * 0.08);
+    $base = ($total / 1.08);
     // $ico = ($total * 0);
     $printer->text(number_format($base, 2, ',', '.') ."    0 " . "         0.00    " . "  8   " . number_format($ico, 2, ',', '.') . "\n");
     $printer->text("-------------  ----------------  ---------------\n");

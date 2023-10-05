@@ -20,8 +20,8 @@ export default new Router({
   routes: [
     {
       path: '/',
-      redirect: '/home',
-      name: 'Home',
+      redirect: '/pedido',
+      name: 'Pedido',
       component: Full,
       children: [
         {

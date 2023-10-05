@@ -49,8 +49,8 @@
     <TheFooter>
       <!--footer-->
       <div>
-        <a href="#">Origen Restaurante Bar.</a>
-        <span class="ml-1">&copy; 2022</span>
+        <a href="#">El Rincón Llanero Restaurante.</a>
+        <span class="ml-1">&copy; 2023</span>
       </div>
       <div class="ml-auto">
         <span class="mr-1">Hecho por</span>

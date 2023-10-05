@@ -9,23 +9,13 @@ $conexion = new Conexion();
 
 $frm = json_decode(file_get_contents('php://input'), true);
 // echo "**".$frm;
-$idusuario = openCypher('decrypt', $frm['token']);
-$urlaplicacion = $frm['url'];
-// $idaplicacion = "2";
-
 $conexion ->query("SET NAMES 'utf8';");
 
 $use = $conexion->prepare('SELECT distinct
 			tipr.*
 			FROM pinchetas_restaurante.tipoproducto tipr
             WHERE tipr_estado = "ACTIVO"
-            AND tipr_descripcion LIKE CONCAT("%", (
-            CASE
-                WHEN (SELECT COUNT(*) from pinchetas_general.usuariorol usro INNER JOIN pinchetas_general.rol rol ON (usro.rol_id = rol.rol_id) INNER JOIN pinchetas_general.usuario usua ON (usua.usua_id = usro.usua_id AND usua.pege_id = ? ) WHERE pinchetas_general.rol.rol_descripcion LIKE "%HELADOS%") = 0 THEN ""
-                ELSE "HELADOS" 
-            END ), "%")
             ORDER BY tipr_orden;');
-$use->bindValue(1, $idusuario);
 $use ->execute();
 $count = $use->rowCount();
 $row = $use->fetchAll();

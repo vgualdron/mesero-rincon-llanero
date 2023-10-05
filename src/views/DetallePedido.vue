@@ -41,12 +41,12 @@
                   :disabled="!disableBtnFE || isFE"
                   @click.stop="facturarPedido()"
                   variant="primary">Generar Factura</b-btn>
-                <b-btn
+                <!--<b-btn
                   v-if="(pedido && pedido.descripcionestado == 'FACTURADO') || ((pedido && pedido.editablepedido == 'SI') && (items && items.length > 0) && (pedido && pedido.idestado > 1))"
                   class="ml-3 mb-3 float-right"
                   :disabled="disableBtnFE"
                   @click.stop="facturarFEPedido()"
-                  variant="primary">FE</b-btn>
+                  variant="primary">FE</b-btn> -->
               </b-form-group>
             </b-col>
           </b-row>
@@ -54,7 +54,7 @@
           <b-row align-h="center" v-if="(pedido && pedido.descripcionestado == 'FACTURADO') || ((pedido && pedido.editablepedido == 'SI') && (items && items.length > 0) && (pedido && pedido.idestado > 1))">
             <b-col class="contenedor-tabla">
               
-              <b-form-checkbox
+              <!--<b-form-checkbox
                   id="checkbox-0"
                   v-model="pedido.checkFe"
                   name="checkbox-0"
@@ -63,7 +63,7 @@
                   :disabled="true"
                   class="mb-3"
                 >  ¿Desea generar factura electrónica?
-                </b-form-checkbox>
+                </b-form-checkbox> -->
 
               <b-card
                 title=""
@@ -164,7 +164,7 @@
           <b-row align-h="center">
             <b-col class="contenedor-tabla">
               
-              <b-form-checkbox
+              <!-- <b-form-checkbox
                   id="checkbox-1"
                   v-model="pedido.facturar"
                   name="checkbox-1"
@@ -173,7 +173,7 @@
                   :disabled="isFE"
                   class="mb-3"
                 >  ¿Desea facturar este pedido?
-                </b-form-checkbox>
+                </b-form-checkbox> -->
 
               <b-card
                 title=""
@@ -185,7 +185,7 @@
                   <label>Seleccione el tipo de pago:</label>
                   <b-form-select v-if="pedido" v-model="pedido.tipopago" class="mb-3" :disabled="isFE">
                     <option value="EFECTIVO">EFECTIVO</option>
-                    <option value="TARJETA">TARJETA</option>
+                    <option value="TARJETA">TRANSFERENCIA</option>
                   </b-form-select>
                   
                   <b-form-checkbox
@@ -267,7 +267,7 @@
                     @click.stop="cargarFormulario(row.item,'Ver')">
                     <i class="icon-eye"></i>
                   </b-button>
-                  <b-button
+                  <!--<b-button
                     v-if="(pedido && pedido.editablepedido == 'SI') || (pedido.descripcionestado == 'FACTURADO' && pedido.descripcionRolSesion != 'MESERO')"
                     style="margin: 1px;"
                     class="ml-2"
@@ -275,7 +275,7 @@
                     :disabled="isFE"
                     @click.stop="cargarFormulario(row.item,'Modificar')">
                     <i class="icon-pencil"></i>
-                  </b-button>
+                  </b-button> -->
                   <b-button
                     v-if="(pedido && pedido.editablepedido == 'SI') || (pedido.descripcionestado == 'FACTURADO' && pedido.descripcionRolSesion != 'MESERO')"
                     style="margin: 1px;"
@@ -591,7 +591,9 @@ export default {
       this.items.forEach(item => {
         total += (parseInt(item.precioproducto) * parseInt(item.cantidadproducto));
       });
-      return parseInt(this.dineroRecibido) - parseInt(total)
+      const output = parseInt(this.dineroRecibido) - parseInt(total);
+      const result = '$' + Number(output.toFixed(1)).toLocaleString();
+      return result;
     },
   },
   watch: {
@@ -1001,7 +1003,8 @@ export default {
         direccioncliente: self.pedido.direccioncliente,
         tipopago: self.pedido.tipopago,
         numerofactura: self.pedido.numerofactura,
-        prefijofactura: self.pedido.prefijofactura
+        prefijofactura: self.pedido.prefijofactura,
+        facturar: 'NO',
       };
       this.$alertify
         .confirmWithTitle(
@@ -1103,7 +1106,7 @@ export default {
         telefonocliente: self.pedido.telefonocliente,
         direccioncliente: self.pedido.direccioncliente,
         tipopago: self.pedido.tipopago,
-        facturar: self.pedido.facturar,
+        facturar: 'SI', // self.pedido.facturar
         numerofactura: self.pedido.numerofactura,
         prefijofactura: self.pedido.prefijofactura
       };
@@ -1342,7 +1345,7 @@ export default {
         telefonocliente: self.pedido.telefonocliente,
         direccioncliente: self.pedido.direccioncliente,
         tipopago: self.pedido.tipopago,
-        facturar: self.pedido.facturar,
+        facturar: 'SI', // self.pedido.facturar
         numerofactura: self.pedido.numerofactura,
         prefijofactura: self.pedido.prefijofactura
       }
@@ -1369,7 +1372,10 @@ export default {
     listarMesasDisponibles: function() {
       this.$loader.open({ message: "Cargando ..." });
       var self = this;
-      var frm = { params: {
+      const token = window.localStorage.getItem("token");
+      var frm = { 
+        params: {
+          token,
         }
       };
       this.$http.get("ws/mesa/", frm).then(resp => {

@@ -32,8 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $productos = $frm['productos'];
     $mesa = $frm['mesa'];
     $mesa["nombreMesero"] = $nombreMesero;
-    $flagBar = false;
+    
+    $flagCarne = false;
     $flagCocina = false;
+    $flagCaja = false;
+
+    $productosCarne = [];
+    $productosCocina = [];
+	$productosCaja = [];
     /*
         Aquí, en lugar de "POS-58" (que es el nombre de mi impresora)
         escribe el nombre de la tuya. Recuerda que debes compartirla
@@ -41,21 +47,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     */
     foreach ($productos as $clave => $producto) {
         $idTipoProducto = $producto["idtipoproducto"];
-        if ($idTipoProducto == 40 || $idTipoProducto == 41 || $idTipoProducto == 42 || $idTipoProducto == 43 || $idTipoProducto == 44 || $idTipoProducto == 50) {
+        if ($idTipoProducto == 53 || $idTipoProducto == 54 || $idTipoProducto == 55 || $idTipoProducto == 56 || $idTipoProducto == 57 || $idTipoProducto == 64 || $idTipoProducto == 65) {
             $flagCocina = true;
+            $productosCocina[] = $producto;
         }
         
-        if ($idTipoProducto == 45 || $idTipoProducto == 46 || $idTipoProducto == 47 || $idTipoProducto == 48 || $idTipoProducto == 49 ) {
-            $flagBar = true;
+        if ($idTipoProducto == 52 ) {
+            $flagCarne = true;
+            $productosCarne[] = $producto;
+        }
+
+        if ($idTipoProducto == 51 || $idTipoProducto == 58 || $idTipoProducto == 59 ) {
+            $flagCaja = true;
+            $productosCaja[] = $producto;
         }
     }
-    if ($flagBar) {
-        printCommand($mesa, $productos, "BAR-PRINTER");
+
+    if ($flagCarne) {
+        printCommand($mesa, $productosCarne, "CARNE-PRINTER");
     }
     if ($flagCocina) {
-        printCommand($mesa, $productos, "COCINA-PRINTER");
+        printCommand($mesa, $productosCocina, "COCINA-PRINTER");
     }
-    // printCommand($mesa, $productos, "POS-80");
+    if ($flagCaja) {
+        printCommand($mesa, $productosCaja, "POS-80");
+    }
 }
 
 function printCommand($mesa, $productos, $printerName) {
